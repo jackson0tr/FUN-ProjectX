@@ -4,7 +4,7 @@ class ModelA {
   }
 
   processAnswer(index, answer) {
-    if (index >= 0 && index < this.questions.length) { 
+    if (index >= 0 && index < this.questions.length) {
       this.questions[index].answer = answer;
     } else {
       console.error(`Index ${index} is out of bounds for ModelA`);
@@ -28,7 +28,7 @@ class ModelB {
 
 function checkResults(modelA, modelB) {
   let result = '';
-  let points = 0; // Initialize points
+  let points = 0;
   const totalQuestions = Math.max(modelA.questions.length, modelB.questions.length);
   let questionsWithAnswers = [];
 
@@ -62,42 +62,6 @@ function checkResults(modelA, modelB) {
 
   return { result, points, questionsWithAnswers };
 }
-
-// function checkResults(modelA, modelB) {
-//   let result = '';
-//   const totalQuestions = Math.max(modelA.questions.length, modelB.questions.length);
-//   let questionsWithAnswers = [];
-
-//   for (let i = 0; i < totalQuestions; i++) {
-//     const answerA = modelA.questions[i]?.answer;
-//     const answerB = modelB.questions[i]?.answer;
-
-//     if (answerA === undefined || answerB === undefined) {
-//       continue;
-//     }
-
-//     questionsWithAnswers.push({
-//       question: modelA.questions[i]?.question || modelB.questions[i]?.question,
-//       answerA: answerA,
-//       answerB: answerB
-//     });
-
-//     if (answerA === 'نعم' && answerB === 'لا') {
-//       result = 'نعم';
-//       points++;
-//     } else if (answerA === 'نعم' && answerB === 'نعم') {
-//       result = 'نعم';
-//       points++;
-//     } else if (answerA === 'لا' && answerB === 'لا') {
-//       result = 'نعم';
-//       points++;
-//     } else if (answerA === 'لا' && answerB === 'نعم') {
-//       result = 'لا';
-//     }
-//   }
-
-//   return { result, points, questionsWithAnswers };
-// }
 
 fetch('data.json')
   .then(response => response.json())
