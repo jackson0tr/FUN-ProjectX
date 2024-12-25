@@ -22,13 +22,12 @@ class QuestionManager {
   }
 
   isComplete() {
-    return (
-      this.currentModelIndex >= this.models.length &&
-      this.currentQuestionIndex >= this.questions[this.models[0]].length
-    );
+    // Checks if both models have completed all their questions
+    return this.currentModelIndex >= this.models.length && this.currentQuestionIndex >= this.questions[this.models[0]].length;
   }
 
   nextQuestion() {
+    // Move to the next question for the current model or switch models
     if (this.hasNextQuestion()) {
       this.currentQuestionIndex++;
     } else {
@@ -50,7 +49,7 @@ class QuestionManager {
   saveToLocalStorage() {
     const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
     localStorage.setItem('answers', JSON.stringify([...storedAnswers, ...this.answers]));
-    this.answers = [];
+    this.answers = []; // Clear temporary answers
   }
 
   calculateAgreement() {
@@ -63,9 +62,9 @@ class QuestionManager {
     modelAAnswers.forEach((a, index) => {
       const bAnswer = modelBAnswers[index]?.answer;
       if (
-        (a.answer && bAnswer) ||
-        (!a.answer && !bAnswer) ||
-        (!a.answer && bAnswer)
+        (a.answer && bAnswer) || // Both Yes
+        (!a.answer && !bAnswer) || // Both No
+        (!a.answer && bAnswer) // No (A) and Yes (B)
       ) {
         agreementCount++;
       }
@@ -79,24 +78,24 @@ class UIManager {
   static renderGenderSelection() {
     const formContainer = document.getElementById('formContainer');
     formContainer.innerHTML = `
-    <h1>الرجاء اختيار النوع</h1>
-    <div class="btn-container">
-      <button onclick="app.setGender('male')">ذكر</button>
-      <button onclick="app.setGender('female')">أنثى</button>
-    </div>
-  `;
+      <h1>الرجاء اختيار النوع</h1>
+      <div class="btn-container">
+        <button onclick="app.setGender('male')">ذكر</button>
+        <button onclick="app.setGender('female')">أنثى</button>
+      </div>
+    `;
   }
 
   static renderQuestion(question, questionIndex) {
     const formContainer = document.getElementById('formContainer');
     formContainer.innerHTML = `
-    <h1>السؤال ${questionIndex + 1}</h1>
-    <p class="question">${question}</p>
-    <div class="btn-container">
-      <button onclick="app.answer(true)">نعم</button>
-      <button onclick="app.answer(false)">لا</button>
-    </div>
-  `;
+      <h1>السؤال ${questionIndex + 1}</h1>
+      <p class="question">${question}</p>
+      <div class="btn-container">
+        <button onclick="app.answer(true)">نعم</button>
+        <button onclick="app.answer(false)">لا</button>
+      </div>
+    `;
   }
 
   static showToast(message, callback) {
@@ -115,9 +114,9 @@ class UIManager {
   static renderAgreementPercentage(percentage) {
     const formContainer = document.getElementById('formContainer');
     formContainer.innerHTML = `
-    <h1>نتيجة التوافق</h1>
-    <p class="question">نسبة التوافق بين النموذجين هي: <strong>${percentage}%</strong></p>
-  `;
+      <h1>نتيجة التوافق</h1>
+      <p class="question">نسبة التوافق بين النموذجين هي: <strong>${percentage}%</strong></p>
+    `;
   }
 }
 
@@ -125,8 +124,6 @@ class App {
   constructor(questionManager) {
     this.questionManager = questionManager;
     this.userGender = null;
-    this.modelAComplete = false;
-    this.modelBComplete = false;
   }
 
   setGender(gender) {
@@ -142,53 +139,37 @@ class App {
   answer(answer) {
     this.questionManager.saveAnswer(answer);
 
+    // Proceed to the next question if there is one, or finish the quiz if both models are done
     if (this.questionManager.hasNextQuestion()) {
       this.questionManager.nextQuestion();
       this.loadNextQuestion();
     } else {
-      if (this.questionManager.currentModel === 'modelA') {
-        this.modelAComplete = true;
-      } else if (this.questionManager.currentModel === 'modelB') {
-        this.modelBComplete = true;
-      }
-
-      if (this.modelAComplete && !this.modelBComplete) {
-        UIManager.showToast('تم استلام الأسئلة');
-        this.questionManager.currentModelIndex = 1;
-        this.questionManager.currentQuestionIndex = 0;
-        this.loadNextQuestion();
-      } else if (this.modelBComplete && !this.modelAComplete) {
-        UIManager.showToast('تم استلام الأسئلة');
-        this.questionManager.currentModelIndex = 0;
-        this.questionManager.currentQuestionIndex = 0;
-        this.loadNextQuestion();
-      } else {
-        this.questionManager.saveToLocalStorage();
-        UIManager.showToast('تم استلام الأسئلة', () => {
+      this.questionManager.saveToLocalStorage();
+      UIManager.showToast('تم استلام الأسئلة', () => {
+        if (this.questionManager.isComplete()) {
           const percentage = this.questionManager.calculateAgreement();
-          UIManager.renderAgreementPercentage(percentage);
-          this.clearLocalStorage();
-        });
-      }
+          console.log('Calculated Agreement:', percentage);
+          UIManager.renderAgreementPercentage(percentage); // Display the agreement percentage
+        } else {
+          this.questionManager.nextQuestion();
+          this.loadNextQuestion();
+        }
+      });
     }
   }
 
   loadNextQuestion() {
     const question = this.questionManager.currentQuestion;
 
+    // Only render a question if there is one available
     if (question && !this.questionManager.isComplete()) {
       const questionIndex = this.questionManager.currentQuestionIndex;
       UIManager.renderQuestion(question, questionIndex);
     } else {
+      // If no questions are left, calculate and display the agreement percentage
       const percentage = this.questionManager.calculateAgreement();
       UIManager.renderAgreementPercentage(percentage);
-      this.clearLocalStorage();
     }
-  }
-
-  clearLocalStorage() {
-    localStorage.removeItem('answers');
-    console.log('Local storage cleared');
   }
 }
 
