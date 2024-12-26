@@ -58,45 +58,144 @@ class QuestionManager {
     const modelAAnswers = storedAnswers.filter((a) => a.model === 'modelA');
     const modelBAnswers = storedAnswers.filter((a) => a.model === 'modelB');
 
-    let agreementCount = 0;
+    let totalPoints = 0;
 
-    modelAAnswers.forEach((a, index) => {
-      const bAnswer = modelBAnswers[index]?.answer;
-      if (
-        (a.answer && bAnswer) ||
-        (!a.answer && !bAnswer) ||
-        (!a.answer && bAnswer)
-      ) {
-        agreementCount++;
+    for (let i = 0; i < modelAAnswers.length; i++) {
+      const aAnswer = modelAAnswers[i].answer;
+      const bAnswer = modelBAnswers[i]?.answer;
+
+      switch (i) {
+        case 0:
+          if (aAnswer === false && bAnswer === false) {
+            totalPoints++;
+          } else if (aAnswer === false && bAnswer === true) {
+            // no point
+          } else if (aAnswer === true && bAnswer === false) {
+            totalPoints++;
+          } else if (aAnswer === true && bAnswer === true) {
+            totalPoints++;
+          }
+          break;
+        case 1:
+          if (aAnswer === false && bAnswer === false) {
+            totalPoints++;
+          } else if (aAnswer === false && bAnswer === true) {
+            totalPoints++;
+          } else if (aAnswer === true && bAnswer === false) {
+            // no point
+          } else if (aAnswer === true && bAnswer === true) {
+            totalPoints++;
+          }
+          break;
+        case 2:
+          if (aAnswer === false && bAnswer === false) {
+            totalPoints++;
+          } else if (aAnswer === false && bAnswer === true) {
+            // no point
+          } else if (aAnswer === true && bAnswer === false) {
+            totalPoints++;
+          } else if (aAnswer === true && bAnswer === true) {
+            totalPoints++;
+          }
+          break;
+        case 3:
+          if (aAnswer === false && bAnswer === false) {
+            totalPoints++;
+          } else if (aAnswer === false && bAnswer === true) {
+            totalPoints++;
+          } else if (aAnswer === true && bAnswer === false) {
+            // no point
+          } else if (aAnswer === true && bAnswer === true) {
+            totalPoints++;
+          }
+          break;
+        case 4:
+          if (aAnswer === false && bAnswer === false) {
+            totalPoints++;
+          } else if (aAnswer === false && bAnswer === true) {
+            totalPoints++;
+          } else if (aAnswer === true && bAnswer === false) {
+            totalPoints++;
+          } else if (aAnswer === true && bAnswer === true) {
+            // no point
+          }
+          break;
+        case 5:
+          if (aAnswer === false && bAnswer === false) {
+            totalPoints++;
+          } else if (aAnswer === false && bAnswer === true) {
+            totalPoints++;
+          } else if (aAnswer === true && bAnswer === false) {
+            totalPoints++;
+          } else if (aAnswer === true && bAnswer === true) {
+            // no point
+          }
+          break;
+        case 6:
+          if (aAnswer === false && bAnswer === false) {
+            totalPoints++;
+          } else if (aAnswer === false && bAnswer === true) {
+            // no point
+          } else if (aAnswer === true && bAnswer === false) {
+            totalPoints++;
+          } else if (aAnswer === true && bAnswer === true) {
+            totalPoints++;
+          }
+          break;
+        case 7:
+          if (aAnswer === false && bAnswer === false) {
+            totalPoints++;
+          } else if (aAnswer === false && bAnswer === true) {
+            totalPoints++;
+          } else if (aAnswer === true && bAnswer === false) {
+            // no point
+          } else if (aAnswer === true && bAnswer === true) {
+            totalPoints++;
+          }
+          break;
+        case 8:
+          if (aAnswer === false && bAnswer === false) {
+            totalPoints++;
+          } else if (aAnswer === false && bAnswer === true) {
+            // no point
+          } else if (aAnswer === true && bAnswer === false) {
+            totalPoints++;
+          } else if (aAnswer === true && bAnswer === true) {
+            totalPoints++;
+          }
+          break;
+        default:
+          break;
       }
-    });
+    }
 
-    return Math.round((agreementCount / modelAAnswers.length) * 100);
+    return Math.round((totalPoints / modelAAnswers.length) * 100);
   }
+
 }
 
 class UIManager {
   static renderGenderSelection() {
     const formContainer = document.getElementById('formContainer');
     formContainer.innerHTML = `
-    <h1>الرجاء اختيار النوع</h1>
-    <div class="btn-container">
-      <button onclick="app.setGender('male')">ذكر</button>
-      <button onclick="app.setGender('female')">أنثى</button>
-    </div>
-  `;
+      <h1>الرجاء اختيار النوع</h1>
+      <div class="btn-container">
+        <button onclick="app.setGender('male')">ذكر</button>
+        <button onclick="app.setGender('female')">أنثى</button>
+      </div>
+    `;
   }
 
   static renderQuestion(question, questionIndex) {
     const formContainer = document.getElementById('formContainer');
     formContainer.innerHTML = `
-    <h1>السؤال ${questionIndex + 1}</h1>
-    <p class="question">${question}</p>
-    <div class="btn-container">
-      <button onclick="app.answer(true)">نعم</button>
-      <button onclick="app.answer(false)">لا</button>
-    </div>
-  `;
+      <h1>السؤال ${questionIndex + 1}</h1>
+      <p class="question">${question}</p>
+      <div class="btn-container">
+        <button onclick="app.answer(true)">نعم</button>
+        <button onclick="app.answer(false)">لا</button>
+      </div>
+    `;
   }
 
   static showToast(message, callback) {
@@ -115,9 +214,9 @@ class UIManager {
   static renderAgreementPercentage(percentage) {
     const formContainer = document.getElementById('formContainer');
     formContainer.innerHTML = `
-    <h1>نتيجة التوافق</h1>
-    <p class="question">نسبة التوافق بين النموذجين هي: <strong>${percentage}%</strong></p>
-  `;
+      <h1>نتيجة التوافق</h1>
+      <p class="question">نسبة التوافق بين النموذجين هي: <strong>${percentage}%</strong></p>
+    `;
   }
 }
 
