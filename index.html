@@ -1,13 +1,44 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>خطبة</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
+
 <body>
-  <div id="formContainer" class="container"></div>
-  <script src="app.js"></script>
+  <div id="formContainer" class="container">
+    <h1>تسجيل الدخول أو التسجيل</h1>
+
+    <!-- Login Form -->
+    <form id="loginForm">
+      <input type="email" placeholder="البريد الإلكتروني" required class="input-field">
+      <input type="password" placeholder="كلمة المرور" required class="input-field">
+      <button type="submit" class="primary-button">تسجيل الدخول</button>
+    </form>
+
+    <p>أو</p>
+
+    <!-- Google Login Button -->
+    <button id="google-login-btn" class="google-button">
+      <i class="fab fa-google"></i> تسجيل الدخول باستخدام Google
+    </button>
+
+    <p>ليس لديك حساب؟ <a href="#" id="showSignUp">إنشاء حساب جديد</a></p>
+
+    <!-- Sign-Up Form -->
+    <form id="signUpForm" style="display: none;">
+      <input type="text" placeholder="الاسم الكامل" required class="input-field">
+      <input type="email" placeholder="البريد الإلكتروني" required class="input-field">
+      <input type="password" placeholder="كلمة المرور" required class="input-field">
+      <button type="submit" class="primary-button">إنشاء حساب</button>
+    </form>
+  </div>
+
+  <script type="module" src="app.js"></script>
 </body>
+
 </html>

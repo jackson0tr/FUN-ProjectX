@@ -175,6 +175,26 @@ class QuestionManager {
 }
 
 class UIManager {
+  static renderFirebaseLogin() {
+    // const formContainer = document.getElementById('formContainer');
+    // formContainer.innerHTML = `
+    //   <h1>Login with Google</h1>
+    //   <button id="google-login-btn">Login with Google</button>
+    // `;
+    const googleLogin = document.getElementById("google-login-btn");
+    if (googleLogin) {
+      googleLogin.addEventListener("click", async function () {
+        try {
+          const result = await signInWithPopup(auth, provider);
+          const user = result.user;
+          app.handleLoginSuccess(user); // Pass the user to handle the login success
+        } catch (error) {
+          console.error("Login failed:", error);
+        }
+      });
+    }
+  }
+
   static renderGenderSelection() {
     const formContainer = document.getElementById('formContainer');
     formContainer.innerHTML = `
@@ -218,6 +238,23 @@ class UIManager {
       <p class="question">نسبة التوافق بين النموذجين هي: <strong>${percentage}%</strong></p>
     `;
   }
+
+  static toggleForms() {
+    const signUpButton = document.getElementById('showSignUp');
+    const loginForm = document.getElementById('loginForm');
+    const signUpForm = document.getElementById('signUpForm');
+
+    if (signUpButton) {
+      signUpButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (loginForm && signUpForm) {
+          loginForm.style.display = 'none';
+          signUpForm.style.display = 'block';
+        }
+      });
+    }
+  }
+
 }
 
 class App {
@@ -226,6 +263,8 @@ class App {
     this.userGender = null;
     this.modelAComplete = false;
     this.modelBComplete = false;
+    this.isLoggedIn = false;
+    this.userEmail = null;
   }
 
   setGender(gender) {
@@ -235,7 +274,39 @@ class App {
   }
 
   start() {
-    UIManager.renderGenderSelection();
+    if (this.isLoggedIn) {
+      // this.loadNextQuestion();
+      window.location.href = "profile.html";
+      // UIManager.renderGenderSelection(); // Show login form first
+    } else {
+      // UIManager.renderFirebaseLogin(); // Show questions after login
+    }
+  }
+
+  handleLoginSuccess(user) {
+    // this.isLoggedIn = true;
+    // this.start(); // Show the gender selection form after successful login
+    this.isLoggedIn = true;
+    this.userEmail = user.email;
+    localStorage.setItem('accessToken', this.generateAccessToken(user));
+    this.isLoggedIn = true;
+    UIManager.showToast('Login successful', () => {
+      this.start(); // Show gender selection form after successful login
+    });
+  }
+
+  generateAccessToken(user) {
+    const token = btoa(user.email + ":" + new Date().getTime());
+    localStorage.setItem('accessToken', token);
+    // Token expires in 30 days
+    setTimeout(() => localStorage.removeItem('accessToken'), 30 * 24 * 60 * 60 * 1000);
+    return token;
+  }
+
+  logout() {
+    localStorage.removeItem('accessToken');
+    this.isLoggedIn = false;
+    window.location.href = "index.html"; // Redirect to login page
   }
 
   answer(answer) {
@@ -294,8 +365,51 @@ class App {
 fetch('data.json')
   .then((response) => response.json())
   .then((data) => {
+    // const questionManager = new QuestionManager(data);
+    // window.app = new App(questionManager);
+    // app.start();
     const questionManager = new QuestionManager(data);
-    window.app = new App(questionManager);
+    const app = new App(questionManager);
+    window.app = app; // Expose the app instance globally
     app.start();
+
+    UIManager.toggleForms();
   })
   .catch((error) => console.error('Error loading questions:', error));
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB1XuwIjJXCPZZwbYftHMQRNTidgIHLlCM",
+  authDomain: "engage-a9f91.firebaseapp.com",
+  projectId: "engage-a9f91",
+  storageBucket: "engage-a9f91.firebasestorage.app",
+  messagingSenderId: "205051675032",
+  appId: "1:205051675032:web:50014729792af97bec6bed",
+  measurementId: "G-L6CV0B4741"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+auth.languageCode = 'en';
+const provider = new GoogleAuthProvider();
+
+const googleLogin = document.getElementById("google-login-btn");
+if (googleLogin) {
+  googleLogin.addEventListener("click", async function () {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const user = result.user;
+      console.log("USER:", user);
+      // app.handleLoginSuccess();
+      console.log("Login successful!");
+    } catch (error) {
+      console.error("Error during Google login:", error);
+      alert(`Login failed: ${error.message}`);
+    }
+  });
+} else {
+  console.error("Google login button not found in the DOM.");
+}

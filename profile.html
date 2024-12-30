@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Page</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f0f0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    .profile-container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }
+    .profile-container h1 { font-size: 24px; }
+    .profile-container p { font-size: 18px; }
+    .logout-btn { background: #f44336; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <div class="profile-container">
+    <h1>Welcome to your Profile</h1>
+    <p id="userEmail">Email: </p>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+    <button id="showQuestionBtn" onclick="showQuestion()" class="logout-btn">Show Question</button>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      window.location.href = "index.html"; 
+    }
+
+    const userEmail = atob(token).split(":")[0];
+    document.getElementById('userEmail').innerText = `Email: ${userEmail}`;
+
+    function logout() {
+      localStorage.removeItem('accessToken');
+      window.location.href = "index.html"; 
+    }
+
+    function showQuestion() {
+      UIManager.renderGenderSelection();
+    }
+  </script>
+</body>
+</html>
