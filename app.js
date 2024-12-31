@@ -217,6 +217,9 @@ class UIManager {
     formContainer.innerHTML = `
       <h1>نتيجة التوافق</h1>
       <p class="question">نسبة التوافق بين النموذجين هي: <strong>${percentage}%</strong></p>
+      <h1>
+      <a href="profile.html" class="back-to-profile">العودة الي الملف الشخصي</a>
+      </h1>
     `;
   }
 
