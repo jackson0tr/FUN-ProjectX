@@ -263,7 +263,7 @@ class App {
       console.log("Redirecting to profile.html");
       console.log("User already logged in, proceeding to profile.");
       // window.location.href = "profile.html";
-      history.pushState(null, "", "profile.html");
+      // history.pushState(null, "", "profile.html");
       UIManager.renderGenderSelection();
     } else {
       console.log("User not logged in, show login/signup form.");
@@ -273,7 +273,9 @@ class App {
   handleLoginSuccess(user) {
     this.isLoggedIn = true;
     this.userEmail = user.email;
+    // localStorage.setItem('accessToken', this.generateAccessToken(user));
     localStorage.setItem('accessToken', this.generateAccessToken(user));
+    console.log("Token saved to localStorage");
     console.log("handle Login Success")
     UIManager.showToast('Login successful', () => {
       this.start();
@@ -282,8 +284,15 @@ class App {
 
   generateAccessToken(user) {
     const token = btoa(user.email + ":" + new Date().getTime());
-    localStorage.setItem('accessToken', token);
-    console.log("LocalStorage Generated")
+    console.log("Generated token:", token);
+    if (typeof (Storage) !== "undefined") {
+      localStorage.setItem('accessToken', token);
+      console.log("Stored Token:", localStorage.getItem('accessToken'));
+      console.log("LocalStorage Generated");
+      console.log(localStorage.getItem('accessToken'));
+    } else {
+      console.error("localStorage is not supported in this environment.");
+    }
     setTimeout(() => localStorage.removeItem('accessToken'), 30 * 24 * 60 * 60 * 1000);
     return token;
   }
