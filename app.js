@@ -175,25 +175,6 @@ class QuestionManager {
 }
 
 class UIManager {
-  static renderFirebaseLogin() {
-    // const formContainer = document.getElementById('formContainer');
-    // formContainer.innerHTML = `
-    //   <h1>Login with Google</h1>
-    //   <button id="google-login-btn">Login with Google</button>
-    // `;
-    const googleLogin = document.getElementById("google-login-btn");
-    if (googleLogin) {
-      googleLogin.addEventListener("click", async function () {
-        try {
-          const result = await signInWithPopup(auth, provider);
-          const user = result.user;
-          app.handleLoginSuccess(user); // Pass the user to handle the login success
-        } catch (error) {
-          console.error("Login failed:", error);
-        }
-      });
-    }
-  }
 
   static renderGenderSelection() {
     const formContainer = document.getElementById('formContainer');
@@ -263,7 +244,8 @@ class App {
     this.userGender = null;
     this.modelAComplete = false;
     this.modelBComplete = false;
-    this.isLoggedIn = false;
+    // this.isLoggedIn = false;
+    this.isLoggedIn = localStorage.getItem('accessToken') !== null;
     this.userEmail = null;
   }
 
@@ -275,30 +257,30 @@ class App {
 
   start() {
     if (this.isLoggedIn) {
-      // this.loadNextQuestion();
-      window.location.href = "profile.html";
-      // UIManager.renderGenderSelection(); // Show login form first
+      console.log("Redirecting to profile.html");
+      console.log("User already logged in, proceeding to profile.");
+      // window.location.href = "profile.html";
+      history.pushState(null, "", "profile.html");
+      UIManager.renderGenderSelection();
     } else {
-      // UIManager.renderFirebaseLogin(); // Show questions after login
+      console.log("User not logged in, show login/signup form.");
     }
   }
 
   handleLoginSuccess(user) {
-    // this.isLoggedIn = true;
-    // this.start(); // Show the gender selection form after successful login
     this.isLoggedIn = true;
     this.userEmail = user.email;
     localStorage.setItem('accessToken', this.generateAccessToken(user));
-    this.isLoggedIn = true;
+    console.log("handle Login Success")
     UIManager.showToast('Login successful', () => {
-      this.start(); // Show gender selection form after successful login
+      this.start();
     });
   }
 
   generateAccessToken(user) {
     const token = btoa(user.email + ":" + new Date().getTime());
     localStorage.setItem('accessToken', token);
-    // Token expires in 30 days
+    console.log("LocalStorage Generated")
     setTimeout(() => localStorage.removeItem('accessToken'), 30 * 24 * 60 * 60 * 1000);
     return token;
   }
@@ -306,7 +288,7 @@ class App {
   logout() {
     localStorage.removeItem('accessToken');
     this.isLoggedIn = false;
-    window.location.href = "index.html"; // Redirect to login page
+    window.location.href = "index.html";
   }
 
   answer(answer) {
@@ -365,12 +347,9 @@ class App {
 fetch('data.json')
   .then((response) => response.json())
   .then((data) => {
-    // const questionManager = new QuestionManager(data);
-    // window.app = new App(questionManager);
-    // app.start();
     const questionManager = new QuestionManager(data);
     const app = new App(questionManager);
-    window.app = app; // Expose the app instance globally
+    window.app = app;
     app.start();
 
     UIManager.toggleForms();
@@ -403,7 +382,7 @@ if (googleLogin) {
       const credential = GoogleAuthProvider.credentialFromResult(result);
       const user = result.user;
       console.log("USER:", user);
-      // app.handleLoginSuccess();
+      window.app.handleLoginSuccess(user);
       console.log("Login successful!");
     } catch (error) {
       console.error("Error during Google login:", error);
