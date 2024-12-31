@@ -5,6 +5,12 @@ class QuestionManager {
     this.currentModelIndex = 0;
     this.currentQuestionIndex = 0;
     this.answers = [];
+    this.sessionId = this.generateSessionId();
+    this.pending = true;
+  }
+
+  generateSessionId() {
+    return `session-${Math.random().toString(36).substr(2, 9)}`;
   }
 
   get currentModel() {
@@ -40,6 +46,7 @@ class QuestionManager {
   saveAnswer(answer) {
     const questionId = `${this.currentModel}-${this.currentQuestionIndex}`;
     this.answers.push({
+      sessionId: this.sessionId,
       id: questionId,
       model: this.currentModel,
       questionIndex: this.currentQuestionIndex,
@@ -172,9 +179,24 @@ class QuestionManager {
     return Math.round((totalPoints / modelAAnswers.length) * 100);
   }
 
+  checkPending() {
+    const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
+    const otherSessionAnswers = storedAnswers.filter(
+      (answer) => answer.sessionId !== this.sessionId
+    );
+
+    if (otherSessionAnswers.length > 0) {
+      this.pending = false;
+    }
+  }
+
 }
 
 class UIManager {
+
+  static notify(message) {
+    alert(message);
+  }
 
   static renderGenderSelection() {
     const formContainer = document.getElementById('formContainer');
@@ -220,7 +242,29 @@ class UIManager {
       <h1>
       <a href="profile.html" class="back-to-profile">العودة الي الملف الشخصي</a>
       </h1>
+      <div>
     `;
+  }
+
+  static renderCopyUrl() {
+    const formContainer = document.getElementById('formContainer');
+    formContainer.innerHTML = `
+      <h1>في انتظار الطرف الأخر</h1>
+      <h1 id="copyUrlButton" class="back-to-profile">نسخ رابط السؤال</h1>
+      <h1>
+      <a href="profile.html" class="back-to-profile">العودة الي الملف الشخصي</a>
+      </h1>
+      <div>
+    `;
+
+    const copyButton = document.getElementById('copyUrlButton');
+    if (copyButton) {
+      copyButton.addEventListener('click', () => {
+        window.app.copyUrl();
+        // app.copyUrl.bind(app)
+        console.log(app);
+      });
+    }
   }
 
   static toggleForms() {
@@ -247,9 +291,9 @@ class App {
     this.userGender = null;
     this.modelAComplete = false;
     this.modelBComplete = false;
-    // this.isLoggedIn = false;
     this.isLoggedIn = localStorage.getItem('accessToken') !== null;
     this.userEmail = null;
+    this.sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Extract sessionId from URL
   }
 
   setGender(gender) {
@@ -259,25 +303,59 @@ class App {
   }
 
   start() {
-    if (this.isLoggedIn) {
-      console.log("Redirecting to profile.html");
-      console.log("User already logged in, proceeding to profile.");
-      // window.location.href = "profile.html";
-      // history.pushState(null, "", "profile.html");
-      UIManager.renderGenderSelection();
+    if (this.sessionId) {
+      this.loadNextQuestion(); // If sessionId exists in URL, start the process
     } else {
-      console.log("User not logged in, show login/signup form.");
+      if (this.isLoggedIn) {
+        console.log("User already logged in, proceeding to profile.");
+        UIManager.renderGenderSelection();
+      } else {
+        console.log("User not logged in, show login/signup form.");
+      }
     }
+    // if (this.isLoggedIn) {
+    //   console.log("User already logged in, proceeding to profile.");
+    //   UIManager.renderGenderSelection();
+    // } else {
+    //   console.log("User not logged in, show login/signup form.");
+    // }
+  }
+
+  generateModelLink() {
+    const baseUrl = window.location.origin;
+    const sessionId = this.questionManager.sessionId;
+    return `${baseUrl}/questions?sessionId=${sessionId}&nextModel=true`;
+  }
+
+  completeModel() {
+    this.questionManager.saveToLocalStorage();
+    if (this.questionManager.isComplete()) {
+      const percentage = this.questionManager.calculateAgreement();
+      UIManager.notify(`Agreement calculated: ${percentage}%`);
+      UIManager.renderAgreementPercentage(percentage);
+    } else {
+      const sessionUrl = this.generateModelLink();
+      UIManager.renderCopyUrl(sessionUrl);
+    }
+  }
+
+  copyUrl() {
+    const url = this.generateModelLink();
+    navigator.clipboard.writeText(url).then(() => {
+      alert('تم نسخ الرابط بنجاح!');
+    }).catch(err => {
+      alert('فشل في نسخ الرابط!');
+    });
   }
 
   handleLoginSuccess(user) {
     this.isLoggedIn = true;
     this.userEmail = user.email;
     // localStorage.setItem('accessToken', this.generateAccessToken(user));
-    localStorage.setItem('accessToken', this.generateAccessToken(user));
+    const token = this.generateAccessToken(user);
     console.log("Token saved to localStorage");
     console.log("handle Login Success")
-    UIManager.showToast('Login successful', () => {
+    UIManager.showToast('تسجيل دخول ناجح', () => {
       this.start();
     });
   }
@@ -285,7 +363,8 @@ class App {
   generateAccessToken(user) {
     const token = btoa(user.email + ":" + new Date().getTime());
     console.log("Generated token:", token);
-    if (typeof (Storage) !== "undefined") {
+    // if (typeof (Storage) !== "undefined" || typeof window !== 'undefined') {
+    if (typeof window !== "undefined" && window.localStorage) {
       localStorage.setItem('accessToken', token);
       console.log("Stored Token:", localStorage.getItem('accessToken'));
       console.log("LocalStorage Generated");
@@ -305,6 +384,7 @@ class App {
 
   answer(answer) {
     this.questionManager.saveAnswer(answer);
+    this.questionManager.checkPending();
 
     if (this.questionManager.hasNextQuestion()) {
       this.questionManager.nextQuestion();
@@ -317,43 +397,65 @@ class App {
       }
 
       if (this.modelAComplete && !this.modelBComplete) {
-        UIManager.showToast('تم استلام الأسئلة');
         this.questionManager.currentModelIndex = 1;
         this.questionManager.currentQuestionIndex = 0;
         this.loadNextQuestion();
+        UIManager.showToast('يرجى الانتظار حتى يجيب المستخدم الآخر');
+        if (this.userGender === 'male') {
+          this.questionManager.saveToLocalStorage();
+          UIManager.renderCopyUrl();
+        }
       } else if (this.modelBComplete && !this.modelAComplete) {
-        UIManager.showToast('تم استلام الأسئلة');
         this.questionManager.currentModelIndex = 0;
         this.questionManager.currentQuestionIndex = 0;
         this.loadNextQuestion();
+        UIManager.showToast('يرجى الانتظار حتى يجيب المستخدم الآخر');
+        if (this.userGender === 'female') {
+          this.questionManager.saveToLocalStorage();
+          UIManager.renderCopyUrl();
+        }
+        // }
       } else {
-        this.questionManager.saveToLocalStorage();
-        UIManager.showToast('تم استلام الأسئلة', () => {
-          const percentage = this.questionManager.calculateAgreement();
-          UIManager.renderAgreementPercentage(percentage);
-          this.clearLocalStorage();
-        });
+        // this.questionManager.saveToLocalStorage();
+        // this.completeModel();
+        // UIManager.showToast('تم استلام الأسئلة', () => {
+        //   const percentage = this.questionManager.calculateAgreement();
+        //   UIManager.renderAgreementPercentage(percentage);
+        //   this.redirectToProfile();
+        //   this.clearLocalStorage();
+        // });
       }
     }
   }
 
   loadNextQuestion() {
     const question = this.questionManager.currentQuestion;
-
-    if (question && !this.questionManager.isComplete()) {
-      const questionIndex = this.questionManager.currentQuestionIndex;
+    const questionIndex = this.questionManager.currentQuestionIndex;
+    
+    if (question) {
       UIManager.renderQuestion(question, questionIndex);
     } else {
-      const percentage = this.questionManager.calculateAgreement();
-      UIManager.renderAgreementPercentage(percentage);
-      this.clearLocalStorage();
+      this.completeModel(); // Once no more questions, complete the process
     }
+    // if (question && !this.questionManager.isComplete()) {
+    //   const questionIndex = this.questionManager.currentQuestionIndex;
+    //   UIManager.renderQuestion(question, questionIndex);
+    // } else {
+    //   const percentage = this.questionManager.calculateAgreement();
+    //   UIManager.renderAgreementPercentage(percentage);
+    //   this.clearLocalStorage();
+    // }
   }
 
   clearLocalStorage() {
     localStorage.removeItem('answers');
     console.log('Local storage cleared');
   }
+
+  redirectToProfile() {
+    window.location.href = "profile.html";
+  }
+
 }
 
 fetch('data.json')
