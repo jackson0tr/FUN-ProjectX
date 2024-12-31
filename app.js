@@ -303,7 +303,9 @@ class App {
   }
 
   start() {
+    console.log("Starting app...");
     if (this.sessionId) {
+      console.log("Session ID found:", this.sessionId);
       this.loadNextQuestion(); // If sessionId exists in URL, start the process
     } else {
       if (this.isLoggedIn) {
@@ -324,7 +326,8 @@ class App {
   generateModelLink() {
     const baseUrl = window.location.origin;
     const sessionId = this.questionManager.sessionId;
-    return `${baseUrl}/questions?sessionId=${sessionId}&nextModel=true`;
+    // return `${baseUrl}/questions?sessionId=${sessionId}&nextModel=true`;
+    return `${baseUrl}/?sessionId=${sessionId}&nextModel=true`;
   }
 
   completeModel() {
@@ -431,7 +434,7 @@ class App {
   loadNextQuestion() {
     const question = this.questionManager.currentQuestion;
     const questionIndex = this.questionManager.currentQuestionIndex;
-    
+
     if (question) {
       UIManager.renderQuestion(question, questionIndex);
     } else {
