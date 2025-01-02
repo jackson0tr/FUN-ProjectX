@@ -73,20 +73,21 @@ class QuestionManager {
 
     if (modelAAnswers.length !== modelBAnswers.length) {
       console.log('Model A and Model B answer lengths do not match');
-      return 0;
     }
 
     console.log("Answers in localStorage:", localStorage.getItem('answers'));
     console.log("answersFromLocalStorage:", answersFromLocalStorage);
     console.log("Model A Answers:", modelAAnswers);
     console.log("Model B Answers:", modelBAnswers);
-    
+
     let totalPoints = 0;
     console.log("Total Points:", totalPoints);
-    
+
     for (let i = 0; i < modelAAnswers.length; i++) {
       const aAnswer = modelAAnswers[i].answer;
       const bAnswer = modelBAnswers[i]?.answer;
+
+      console.log(`Comparing answers for index ${i}: modelA answer = ${aAnswer}, modelB answer = ${bAnswer}`);
 
       switch (i) {
         case 0:
@@ -192,7 +193,7 @@ class QuestionManager {
           break;
       }
     }
-    
+
     return Math.round((totalPoints / modelAAnswers.length) * 100);
   }
 }
@@ -369,8 +370,8 @@ class App {
     queryParams.set("senderGender", this.userGender);
 
     this.questionManager.answers.forEach((answer) => {
-      const encryptedAnswer = btoa(answer.answer); 
-      const encryptedQuestionIndex = btoa(answer.questionIndex); 
+      const encryptedAnswer = btoa(answer.answer);
+      const encryptedQuestionIndex = btoa(answer.questionIndex);
       queryParams.set(`${answer.model}-${encryptedQuestionIndex}`, encryptedAnswer);
     });
 
