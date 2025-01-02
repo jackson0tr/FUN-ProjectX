@@ -6,7 +6,6 @@ class QuestionManager {
     this.currentQuestionIndex = 0;
     this.answers = [];
     this.sessionId = this.generateSessionId();
-    this.pending = true;
   }
 
   setModelsForGender(gender) {
@@ -66,13 +65,25 @@ class QuestionManager {
     this.answers = [];
   }
 
-  calculateAgreement() {
-    const modelAAnswers = [];
-    const modelBAnswers = [];
- 
+  calculateAgreement(sessionId) {
+    const answersFromLocalStorage = JSON.parse(localStorage.getItem('answers')) || [];
+    const modelAAnswers = answersFromLocalStorage.filter(answer => answer.model === 'modelA' && answer.sessionId === sessionId);
+    const modelBAnswers = answersFromLocalStorage.filter(answer => answer.model === 'modelB' && answer.sessionId === sessionId);
 
+
+    if (modelAAnswers.length !== modelBAnswers.length) {
+      console.log('Model A and Model B answer lengths do not match');
+      return 0;
+    }
+
+    console.log("Answers in localStorage:", localStorage.getItem('answers'));
+    console.log("answersFromLocalStorage:", answersFromLocalStorage);
+    console.log("Model A Answers:", modelAAnswers);
+    console.log("Model B Answers:", modelBAnswers);
+    
     let totalPoints = 0;
-
+    console.log("Total Points:", totalPoints);
+    
     for (let i = 0; i < modelAAnswers.length; i++) {
       const aAnswer = modelAAnswers[i].answer;
       const bAnswer = modelBAnswers[i]?.answer;
@@ -181,21 +192,9 @@ class QuestionManager {
           break;
       }
     }
-
+    
     return Math.round((totalPoints / modelAAnswers.length) * 100);
   }
-
-  checkPending() {
-    const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
-    const otherSessionAnswers = storedAnswers.filter(
-      (answer) => answer.sessionId !== this.sessionId
-    );
-
-    if (otherSessionAnswers.length > 0) {
-      this.pending = false;
-    }
-  }
-
 }
 
 class UIManager {
@@ -300,7 +299,7 @@ class App {
     this.userEmail = null;
     this.sessionId = new URLSearchParams(window.location.search).get('sessionId');
   }
-  
+
 
   setGender(gender) {
     this.userGender = gender;
@@ -327,16 +326,52 @@ class App {
   loadSessionQuestions() {
     const urlParams = new URLSearchParams(window.location.search);
     const senderGender = urlParams.get('senderGender');
-    this.questionManager.setModelsForGender(senderGender === 'male' ? 'female' : 'male');
+    if (senderGender) {
+      this.questionManager.setModelsForGender(senderGender === 'male' ? 'female' : 'male');
+    } else {
+      console.error('Sender gender is missing in URL parameters.');
+    }
+    const answersFromUrl = this.extractAnswersFromUrl(urlParams);
+    this.storeAnswersInLocalStorage(answersFromUrl);
     this.loadNextQuestion();
+  }
+
+  extractAnswersFromUrl(urlParams) {
+    const answers = [];
+    this.questionManager.models.forEach(model => {
+      if (this.questionManager.questions[model]) {
+        const modelAnswers = urlParams.get(model)?.split(',');
+        if (modelAnswers) {
+          modelAnswers.forEach((answer, index) => {
+            answers.push({
+              model,
+              questionIndex: index,
+              answer: answer === 'true',
+            });
+          });
+        }
+      } else {
+        console.error(`Model ${model} does not exist in questions.`);
+      }
+    });
+    return answers;
+  }
+
+  storeAnswersInLocalStorage(answers) {
+    const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
+    localStorage.setItem('answers', JSON.stringify([...storedAnswers, ...answers]));
+
   }
 
   generateModelLink() {
     const queryParams = new URLSearchParams();
     queryParams.set("sessionId", this.questionManager.sessionId);
     queryParams.set("senderGender", this.userGender);
+
     this.questionManager.answers.forEach((answer) => {
-      queryParams.set(`${answer.model}-${answer.questionIndex}`, answer.answer);
+      const encryptedAnswer = btoa(answer.answer); 
+      const encryptedQuestionIndex = btoa(answer.questionIndex); 
+      queryParams.set(`${answer.model}-${encryptedQuestionIndex}`, encryptedAnswer);
     });
 
     const baseUrl = window.location.origin + window.location.pathname;
@@ -348,13 +383,13 @@ class App {
   completeModel() {
     if (this.questionManager.isComplete()) {
       this.questionManager.saveToLocalStorage();
-  
+
       if (this.userGender === 'male') {
         this.modelAComplete = true;
       } else {
         this.modelBComplete = true;
       }
-  
+
       if (this.modelAComplete && this.modelBComplete) {
         const percentage = this.questionManager.calculateAgreement();
         UIManager.notify(`Agreement calculated: ${percentage}%`);
@@ -366,8 +401,6 @@ class App {
       UIManager.renderCopyUrl(this.generateModelLink());
     }
   }
-
-
 
   copyUrl() {
     const url = this.generateModelLink();
@@ -423,7 +456,19 @@ class App {
     if (question) {
       UIManager.renderQuestion(question, questionIndex);
     } else {
-      this.completeModel(); 
+      this.questionManager.saveToLocalStorage();
+      if (this.sessionId) {
+        console.log("sessionId", this.sessionId);
+        const percentage = this.questionManager.calculateAgreement(this.sessionId);
+        console.log("PERCENTAGE", percentage);
+        if (percentage !== null) {
+          UIManager.renderAgreementPercentage(percentage);
+        } else {
+          UIManager.renderCopyUrl(this.questionManager.sessionId);
+        }
+      } else {
+        UIManager.renderCopyUrl(this.questionManager.sessionId);
+      }
     }
   }
 
