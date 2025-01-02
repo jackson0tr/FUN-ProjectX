@@ -1,11 +1,11 @@
 class QuestionManager {
-  constructor(questions) {
+  constructor(questions, sessionId = null) {
     this.questions = questions;
     this.models = Object.keys(questions);
     this.currentModelIndex = 0;
     this.currentQuestionIndex = 0;
     this.answers = [];
-    this.sessionId = this.generateSessionId();
+    this.sessionId = sessionId || this.generateSessionId();
   }
 
   setModelsForGender(gender) {
@@ -312,6 +312,7 @@ class App {
   start() {
     console.log("Starting app...");
     if (this.sessionId) {
+      this.questionManager.sessionId = this.sessionId;
       console.log("Session ID found:", this.sessionId);
       this.loadSessionQuestions();
     } else {
