@@ -356,10 +356,12 @@ class App {
         const modelAnswers = urlParams.get(model)?.split(',');
         if (modelAnswers) {
           modelAnswers.forEach((answer, index) => {
+            const decodedAnswer = atob(answer) === 'true';
             answers.push({
               model,
               questionIndex: index,
-              answer: answer === 'true',
+              answer: decodedAnswer,
+              // answer: answer === 'true',
             });
           });
         }
@@ -367,6 +369,7 @@ class App {
         console.error(`Model ${model} does not exist in questions.`);
       }
     });
+    console.log("extractAnswersFromUrl", answers)
     return answers;
   }
 
@@ -380,45 +383,19 @@ class App {
     const queryParams = new URLSearchParams();
     queryParams.set("sessionId", this.questionManager.sessionId);
     queryParams.set("senderGender", this.userGender);
-    queryParams.set("answers", JSON.stringify(this.questionManager.answers));
+
+    this.questionManager.answers.forEach((answer) => {
+      const encryptedAnswer = btoa(answer.answer);
+      const encryptedQuestionIndex = btoa(answer.questionIndex);
+      console.log("encryptedAnswer", encryptedAnswer);
+      queryParams.set(`${answer.model}-${encryptedQuestionIndex}`, encryptedAnswer);
+    });
 
     const baseUrl = window.location.origin + window.location.pathname;
     const link = `${baseUrl}?${queryParams.toString()}`;
-
+    console.log("link", link);
     return link;
   }
-
-  // generateModelLink() {
-  //   const queryParams = new URLSearchParams();
-  //   queryParams.set("sessionId", this.questionManager.sessionId);
-  //   queryParams.set("senderGender", this.userGender);
-  //   this.questionManager.answers.forEach((answer) => {
-  //     queryParams.set(`${answer.model}-${answer.questionIndex}`, answer.answer);
-  //   });
-
-  //   const baseUrl = window.location.origin + window.location.pathname;
-  //   const link = `${baseUrl}?${queryParams.toString()}`;
-  //   console.log("link", link);
-  //   return link;
-  // }
-
-  // generateModelLink() {
-  //   const queryParams = new URLSearchParams();
-  //   queryParams.set("sessionId", this.questionManager.sessionId);
-  //   queryParams.set("senderGender", this.userGender);
-
-  //   this.questionManager.answers.forEach((answer) => {
-  //     const encryptedAnswer = btoa(answer.answer);
-  //     const encryptedQuestionIndex = btoa(answer.questionIndex);
-  //     console.log("encryptedAnswer", encryptedAnswer);
-  //     queryParams.set(`${answer.model}-${encryptedQuestionIndex}`, encryptedAnswer);
-  //   });
-
-  //   const baseUrl = window.location.origin + window.location.pathname;
-  //   const link = `${baseUrl}?${queryParams.toString()}`;
-  //   console.log("link", link);
-  //   return link;
-  // }
 
   completeModel() {
     if (this.questionManager.isComplete()) {
