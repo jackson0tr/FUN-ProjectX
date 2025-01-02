@@ -390,7 +390,7 @@ class App {
 
     const baseUrl = window.location.origin + window.location.pathname;
     const link = `${baseUrl}?${queryParams.toString()}`;
-
+    console.log("link", link);
     return link;
   }
 
