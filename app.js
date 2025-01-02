@@ -487,7 +487,7 @@ class App {
         console.log("PERCENTAGE", percentage);
         if (percentage !== null) {
           UIManager.renderAgreementPercentage(percentage);
-          this.clearLocalStorage();
+          // this.clearLocalStorage();
         } else {
           UIManager.renderCopyUrl(this.questionManager.sessionId);
         }
