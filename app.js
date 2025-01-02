@@ -380,12 +380,8 @@ class App {
     const queryParams = new URLSearchParams();
     queryParams.set("sessionId", this.questionManager.sessionId);
     queryParams.set("senderGender", this.userGender);
-
     this.questionManager.answers.forEach((answer) => {
-      const encryptedAnswer = btoa(answer.answer);
-      const encryptedQuestionIndex = btoa(answer.questionIndex);
-      console.log("encryptedAnswer", encryptedAnswer);
-      queryParams.set(`${answer.model}-${encryptedQuestionIndex}`, encryptedAnswer);
+      queryParams.set(`${answer.model}-${answer.questionIndex}`, answer.answer);
     });
 
     const baseUrl = window.location.origin + window.location.pathname;
@@ -393,6 +389,24 @@ class App {
     console.log("link", link);
     return link;
   }
+
+  // generateModelLink() {
+  //   const queryParams = new URLSearchParams();
+  //   queryParams.set("sessionId", this.questionManager.sessionId);
+  //   queryParams.set("senderGender", this.userGender);
+
+  //   this.questionManager.answers.forEach((answer) => {
+  //     const encryptedAnswer = btoa(answer.answer);
+  //     const encryptedQuestionIndex = btoa(answer.questionIndex);
+  //     console.log("encryptedAnswer", encryptedAnswer);
+  //     queryParams.set(`${answer.model}-${encryptedQuestionIndex}`, encryptedAnswer);
+  //   });
+
+  //   const baseUrl = window.location.origin + window.location.pathname;
+  //   const link = `${baseUrl}?${queryParams.toString()}`;
+  //   console.log("link", link);
+  //   return link;
+  // }
 
   completeModel() {
     if (this.questionManager.isComplete()) {
