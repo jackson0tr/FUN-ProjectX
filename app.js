@@ -65,18 +65,8 @@ class QuestionManager {
     this.answers = [];
   }
 
-  getStoredAnswers() {
-    const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
-    const sessionAnswers = storedAnswers.filter(answer => answer.sessionId === this.sessionId);
-    console.log("Stored answers:", storedAnswers);
-    console.log("Session answers:", sessionAnswers);
-    return sessionAnswers;
-  }
-
   calculateAgreement(sessionId) {
-    // const answersFromLocalStorage = JSON.parse(localStorage.getItem('answers')) || [];
-    const answersFromLocalStorage = this.getStoredAnswers();
-    console.log("Answers from localStorage:", answersFromLocalStorage);
+    const answersFromLocalStorage = JSON.parse(localStorage.getItem('answers')) || [];
     const modelAAnswers = answersFromLocalStorage.filter(answer => answer.model === 'modelA' && answer.sessionId === sessionId);
     const modelBAnswers = answersFromLocalStorage.filter(answer => answer.model === 'modelB' && answer.sessionId === sessionId);
 
@@ -85,7 +75,7 @@ class QuestionManager {
       console.log('Model A and Model B answer lengths do not match');
     }
 
-    // console.log("Answers in localStorage:", localStorage.getItem('answers'));
+    console.log("Answers in localStorage:", localStorage.getItem('answers'));
     console.log("answersFromLocalStorage:", answersFromLocalStorage);
     console.log("Model A Answers:", modelAAnswers);
     console.log("Model B Answers:", modelBAnswers);
@@ -309,7 +299,6 @@ class App {
     this.isLoggedIn = localStorage.getItem('accessToken') !== null;
     this.userEmail = null;
     this.sessionId = new URLSearchParams(window.location.search).get('sessionId');
-    // this.questionManager.sessionId = this.sessionId;
   }
 
 
@@ -356,12 +345,10 @@ class App {
         const modelAnswers = urlParams.get(model)?.split(',');
         if (modelAnswers) {
           modelAnswers.forEach((answer, index) => {
-            const decodedAnswer = atob(answer) === 'true';
             answers.push({
               model,
               questionIndex: index,
-              answer: decodedAnswer,
-              // answer: answer === 'true',
+              answer: answer === 'true',
             });
           });
         }
@@ -369,22 +356,14 @@ class App {
         console.error(`Model ${model} does not exist in questions.`);
       }
     });
-    console.log("extractAnswersFromUrl", answers)
     return answers;
   }
 
   storeAnswersInLocalStorage(answers) {
-    answers.forEach(answer => {
-      this.questionManager.saveAnswer(answer.answer);  // Save each decoded answer in the question manager
-    });
-    this.questionManager.saveToLocalStorage();  // Save answers in local storage
+    const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
+    localStorage.setItem('answers', JSON.stringify([...storedAnswers, ...answers]));
+
   }
-
-  // storeAnswersInLocalStorage(answers) {
-  //   const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
-  //   localStorage.setItem('answers', JSON.stringify([...storedAnswers, ...answers]));
-
-  // }
 
   generateModelLink() {
     const queryParams = new URLSearchParams();
@@ -394,13 +373,12 @@ class App {
     this.questionManager.answers.forEach((answer) => {
       const encryptedAnswer = btoa(answer.answer);
       const encryptedQuestionIndex = btoa(answer.questionIndex);
-      console.log("encryptedAnswer", encryptedAnswer);
       queryParams.set(`${answer.model}-${encryptedQuestionIndex}`, encryptedAnswer);
     });
 
     const baseUrl = window.location.origin + window.location.pathname;
     const link = `${baseUrl}?${queryParams.toString()}`;
-    console.log("link", link);
+
     return link;
   }
 
@@ -429,7 +407,7 @@ class App {
   copyUrl() {
     const url = this.generateModelLink();
     navigator.clipboard.writeText(url).then(() => {
-      UIManager.showToast('تم نسخ الرابط بنجاح!');
+      alert('تم نسخ الرابط بنجاح!');
     }).catch(err => {
       alert('فشل في نسخ الرابط!');
     });
@@ -487,7 +465,6 @@ class App {
         console.log("PERCENTAGE", percentage);
         if (percentage !== null) {
           UIManager.renderAgreementPercentage(percentage);
-          // this.clearLocalStorage();
         } else {
           UIManager.renderCopyUrl(this.questionManager.sessionId);
         }
