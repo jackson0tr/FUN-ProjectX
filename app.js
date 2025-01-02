@@ -374,10 +374,17 @@ class App {
   }
 
   storeAnswersInLocalStorage(answers) {
-    const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
-    localStorage.setItem('answers', JSON.stringify([...storedAnswers, ...answers]));
-
+    answers.forEach(answer => {
+      this.questionManager.saveAnswer(answer.answer);  // Save each decoded answer in the question manager
+    });
+    this.questionManager.saveToLocalStorage();  // Save answers in local storage
   }
+
+  // storeAnswersInLocalStorage(answers) {
+  //   const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
+  //   localStorage.setItem('answers', JSON.stringify([...storedAnswers, ...answers]));
+
+  // }
 
   generateModelLink() {
     const queryParams = new URLSearchParams();
@@ -480,6 +487,7 @@ class App {
         console.log("PERCENTAGE", percentage);
         if (percentage !== null) {
           UIManager.renderAgreementPercentage(percentage);
+          this.clearLocalStorage();
         } else {
           UIManager.renderCopyUrl(this.questionManager.sessionId);
         }
