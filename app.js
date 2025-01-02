@@ -68,12 +68,15 @@ class QuestionManager {
   getStoredAnswers() {
     const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
     const sessionAnswers = storedAnswers.filter(answer => answer.sessionId === this.sessionId);
+    console.log("Stored answers:", storedAnswers);
+    console.log("Session answers:", sessionAnswers);
     return sessionAnswers;
   }
 
   calculateAgreement(sessionId) {
     // const answersFromLocalStorage = JSON.parse(localStorage.getItem('answers')) || [];
     const answersFromLocalStorage = this.getStoredAnswers();
+    console.log("Answers from localStorage:", answersFromLocalStorage);
     const modelAAnswers = answersFromLocalStorage.filter(answer => answer.model === 'modelA' && answer.sessionId === sessionId);
     const modelBAnswers = answersFromLocalStorage.filter(answer => answer.model === 'modelB' && answer.sessionId === sessionId);
 
@@ -82,7 +85,7 @@ class QuestionManager {
       console.log('Model A and Model B answer lengths do not match');
     }
 
-    console.log("Answers in localStorage:", localStorage.getItem('answers'));
+    // console.log("Answers in localStorage:", localStorage.getItem('answers'));
     console.log("answersFromLocalStorage:", answersFromLocalStorage);
     console.log("Model A Answers:", modelAAnswers);
     console.log("Model B Answers:", modelBAnswers);
