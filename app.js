@@ -65,8 +65,15 @@ class QuestionManager {
     this.answers = [];
   }
 
+  getStoredAnswers() {
+    const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
+    const sessionAnswers = storedAnswers.filter(answer => answer.sessionId === this.sessionId);
+    return sessionAnswers;
+  }
+
   calculateAgreement(sessionId) {
-    const answersFromLocalStorage = JSON.parse(localStorage.getItem('answers')) || [];
+    // const answersFromLocalStorage = JSON.parse(localStorage.getItem('answers')) || [];
+    const answersFromLocalStorage = this.getStoredAnswers();
     const modelAAnswers = answersFromLocalStorage.filter(answer => answer.model === 'modelA' && answer.sessionId === sessionId);
     const modelBAnswers = answersFromLocalStorage.filter(answer => answer.model === 'modelB' && answer.sessionId === sessionId);
 
@@ -299,6 +306,7 @@ class App {
     this.isLoggedIn = localStorage.getItem('accessToken') !== null;
     this.userEmail = null;
     this.sessionId = new URLSearchParams(window.location.search).get('sessionId');
+    // this.questionManager.sessionId = this.sessionId;
   }
 
 
@@ -407,7 +415,7 @@ class App {
   copyUrl() {
     const url = this.generateModelLink();
     navigator.clipboard.writeText(url).then(() => {
-      alert('تم نسخ الرابط بنجاح!');
+      UIManager.showToast('تم نسخ الرابط بنجاح!');
     }).catch(err => {
       alert('فشل في نسخ الرابط!');
     });
