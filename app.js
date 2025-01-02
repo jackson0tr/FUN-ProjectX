@@ -380,15 +380,27 @@ class App {
     const queryParams = new URLSearchParams();
     queryParams.set("sessionId", this.questionManager.sessionId);
     queryParams.set("senderGender", this.userGender);
-    this.questionManager.answers.forEach((answer) => {
-      queryParams.set(`${answer.model}-${answer.questionIndex}`, answer.answer);
-    });
+    queryParams.set("answers", JSON.stringify(this.questionManager.answers));
 
     const baseUrl = window.location.origin + window.location.pathname;
     const link = `${baseUrl}?${queryParams.toString()}`;
-    console.log("link", link);
+
     return link;
   }
+
+  // generateModelLink() {
+  //   const queryParams = new URLSearchParams();
+  //   queryParams.set("sessionId", this.questionManager.sessionId);
+  //   queryParams.set("senderGender", this.userGender);
+  //   this.questionManager.answers.forEach((answer) => {
+  //     queryParams.set(`${answer.model}-${answer.questionIndex}`, answer.answer);
+  //   });
+
+  //   const baseUrl = window.location.origin + window.location.pathname;
+  //   const link = `${baseUrl}?${queryParams.toString()}`;
+  //   console.log("link", link);
+  //   return link;
+  // }
 
   // generateModelLink() {
   //   const queryParams = new URLSearchParams();
