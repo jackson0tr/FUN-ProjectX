@@ -57,6 +57,7 @@ class QuestionManager {
       questionIndex: this.currentQuestionIndex,
       answer,
     });
+    this.saveToLocalStorage();
   }
 
   saveToLocalStorage() {
@@ -334,7 +335,12 @@ class App {
       console.error('Sender gender is missing in URL parameters.');
     }
     const answersFromUrl = this.extractAnswersFromUrl(urlParams);
-    this.storeAnswersInLocalStorage(answersFromUrl);
+    if (answersFromUrl.length > 0) {
+      this.storeAnswersInLocalStorage(answersFromUrl);
+    } else {
+      console.error('No valid answers found in URL parameters.');
+    }
+    // this.storeAnswersInLocalStorage(answersFromUrl);
     this.loadNextQuestion();
   }
 
