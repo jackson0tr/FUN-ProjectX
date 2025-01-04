@@ -1,11 +1,13 @@
 class QuestionManager {
-  constructor(questions, sessionId = null) {
+  constructor(questions) {
     this.questions = questions;
     this.models = Object.keys(questions);
+    // this.models = [];
     this.currentModelIndex = 0;
     this.currentQuestionIndex = 0;
     this.answers = [];
-    this.sessionId = sessionId || this.generateSessionId();
+    this.sessionId = this.generateSessionId();
+    this.pending = true;
   }
 
   setModelsForGender(gender) {
@@ -57,38 +59,30 @@ class QuestionManager {
       questionIndex: this.currentQuestionIndex,
       answer,
     });
-    this.saveToLocalStorage();
   }
 
   saveToLocalStorage() {
-    const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
-    localStorage.setItem('answers', JSON.stringify([...storedAnswers, ...this.answers]));
-    this.answers = [];
+    const storedAnswers = JSON.parse(localStorage.getItem("answers")) || {};
+    storedAnswers[this.sessionId] = this.answers;
+    localStorage.setItem("answers", JSON.stringify(storedAnswers));
   }
 
-  calculateAgreement(sessionId) {
-    const answersFromLocalStorage = JSON.parse(localStorage.getItem('answers')) || [];
-    const modelAAnswers = answersFromLocalStorage.filter(answer => answer.model === 'modelA' && answer.sessionId === sessionId);
-    const modelBAnswers = answersFromLocalStorage.filter(answer => answer.model === 'modelB' && answer.sessionId === sessionId);
+  // saveToLocalStorage() {
+  //   const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
+  //   localStorage.setItem('answers', JSON.stringify([...storedAnswers, ...this.answers]));
+  //   this.answers = [];
+  // }
 
-
-    if (modelAAnswers.length !== modelBAnswers.length) {
-      console.log('Model A and Model B answer lengths do not match');
-    }
-
-    console.log("Answers in localStorage:", localStorage.getItem('answers'));
-    console.log("answersFromLocalStorage:", answersFromLocalStorage);
-    console.log("Model A Answers:", modelAAnswers);
-    console.log("Model B Answers:", modelBAnswers);
+  calculateAgreement() {
+    const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
+    const modelAAnswers = storedAnswers.filter((a) => a.model === 'modelA');
+    const modelBAnswers = storedAnswers.filter((a) => a.model === 'modelB');
 
     let totalPoints = 0;
-    console.log("Total Points:", totalPoints);
 
     for (let i = 0; i < modelAAnswers.length; i++) {
       const aAnswer = modelAAnswers[i].answer;
       const bAnswer = modelBAnswers[i]?.answer;
-
-      console.log(`Comparing answers for index ${i}: modelA answer = ${aAnswer}, modelB answer = ${bAnswer}`);
 
       switch (i) {
         case 0:
@@ -197,6 +191,18 @@ class QuestionManager {
 
     return Math.round((totalPoints / modelAAnswers.length) * 100);
   }
+
+  checkPending() {
+    const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
+    const otherSessionAnswers = storedAnswers.filter(
+      (answer) => answer.sessionId !== this.sessionId
+    );
+
+    if (otherSessionAnswers.length > 0) {
+      this.pending = false;
+    }
+  }
+
 }
 
 class UIManager {
@@ -302,18 +308,15 @@ class App {
     this.sessionId = new URLSearchParams(window.location.search).get('sessionId');
   }
 
-
   setGender(gender) {
     this.userGender = gender;
     this.questionManager.setModelsForGender(gender);
     this.loadNextQuestion();
-
   }
 
   start() {
     console.log("Starting app...");
     if (this.sessionId) {
-      this.questionManager.sessionId = this.sessionId;
       console.log("Session ID found:", this.sessionId);
       this.loadSessionQuestions();
     } else {
@@ -328,59 +331,75 @@ class App {
 
   loadSessionQuestions() {
     const urlParams = new URLSearchParams(window.location.search);
-    const senderGender = urlParams.get('senderGender');
+    const senderGender = urlParams.get("senderGender");
+    const savedAnswers = JSON.parse(urlParams.get("answers") || "[]");
     if (senderGender) {
       this.questionManager.setModelsForGender(senderGender === 'male' ? 'female' : 'male');
+      this.questionManager.answers = savedAnswers;
     } else {
       console.error('Sender gender is missing in URL parameters.');
     }
-    const answersFromUrl = this.extractAnswersFromUrl(urlParams);
-    if (answersFromUrl.length > 0) {
-      this.storeAnswersInLocalStorage(answersFromUrl);
-    } else {
-      console.error('No valid answers found in URL parameters.');
-    }
-    // this.storeAnswersInLocalStorage(answersFromUrl);
     this.loadNextQuestion();
+    // if (!this.questionManager.pending) {
+    //   this.questionManager.answers = savedAnswers; // Include first user's answers
+    //   const percentage = this.questionManager.calculateAgreement();
+    //   UIManager.renderAgreementPercentage(percentage);
+    // } else {
+    //   UIManager.renderCopyUrl();
+    // }
   }
 
-  extractAnswersFromUrl(urlParams) {
-    const answers = [];
-    this.questionManager.models.forEach(model => {
-      if (this.questionManager.questions[model]) {
-        const modelAnswers = urlParams.get(model)?.split(',');
-        if (modelAnswers) {
-          modelAnswers.forEach((answer, index) => {
-            answers.push({
-              model,
-              questionIndex: index,
-              answer: answer === 'true',
-            });
-          });
-        }
-      } else {
-        console.error(`Model ${model} does not exist in questions.`);
-      }
-    });
-    return answers;
-  }
 
-  storeAnswersInLocalStorage(answers) {
-    const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
-    localStorage.setItem('answers', JSON.stringify([...storedAnswers, ...answers]));
+  // loadSessionQuestions() {
+  //   const urlParams = new URLSearchParams(window.location.search);
+  //   const senderGender = urlParams.get('senderGender');
+  //   this.questionManager.setModelsForGender(senderGender === 'male' ? 'female' : 'male');
 
-  }
+  //   this.questionManager.checkPending();
+
+  //   if (!this.questionManager.pending) {
+  //     const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
+  //     const modelAnswers = storedAnswers.filter(answer => answer.model === this.questionManager.currentModel);
+
+  //     // Check if the current model has unanswered questions
+  //     if (modelAnswers.length < this.questionManager.questions[this.questionManager.currentModel].length) {
+  //       this.loadNextQuestion();
+  //     } else {
+  //       // If all questions are answered, calculate the agreement percentage
+  //       const percentage = this.questionManager.calculateAgreement();
+  //       UIManager.renderAgreementPercentage(percentage);
+  //     }
+  //   } else {
+  //     // If the second user hasn't started yet, prompt for sharing the link
+  //     UIManager.renderCopyUrl();
+  //   }
+  // }
+
+
+  // loadSessionQuestions() {
+  //   const urlParams = new URLSearchParams(window.location.search);
+  //   const senderGender = urlParams.get('senderGender');
+  //   this.questionManager.setModelsForGender(senderGender === 'male' ? 'female' : 'male');
+  //   this.questionManager.checkPending();
+  //   if (!this.questionManager.pending) {
+  //     const percentage = this.questionManager.calculateAgreement();
+  //     UIManager.renderAgreementPercentage(percentage);
+  //   } else {
+  //     UIManager.renderCopyUrl();
+  //   }
+  // }
+
+  // generateModelLink() {
+  //   const baseUrl = window.location.origin;
+  //   const sessionId = this.questionManager.sessionId;
+  //   return `${baseUrl}/?sessionId=${sessionId}&nextModel=true&senderGender=${this.userGender}`;
+  // }
 
   generateModelLink() {
     const queryParams = new URLSearchParams();
     queryParams.set("sessionId", this.questionManager.sessionId);
     queryParams.set("senderGender", this.userGender);
-
-    this.questionManager.answers.forEach((answer) => {
-      const encryptedAnswer = btoa(answer.answer);
-      const encryptedQuestionIndex = btoa(answer.questionIndex);
-      queryParams.set(`${answer.model}-${encryptedQuestionIndex}`, encryptedAnswer);
-    });
+    queryParams.set("answers", JSON.stringify(this.questionManager.answers));
 
     const baseUrl = window.location.origin + window.location.pathname;
     const link = `${baseUrl}?${queryParams.toString()}`;
@@ -389,33 +408,23 @@ class App {
   }
 
   completeModel() {
+    this.questionManager.saveToLocalStorage();
     if (this.questionManager.isComplete()) {
-      this.questionManager.saveToLocalStorage();
-
-      if (this.userGender === 'male') {
-        this.modelAComplete = true;
-      } else {
-        this.modelBComplete = true;
-      }
-
-      if (this.modelAComplete && this.modelBComplete) {
-        const percentage = this.questionManager.calculateAgreement();
-        UIManager.notify(`Agreement calculated: ${percentage}%`);
-        UIManager.renderAgreementPercentage(percentage);
-      } else {
-        UIManager.renderCopyUrl(this.generateModelLink());
-      }
+      const percentage = this.questionManager.calculateAgreement();
+      UIManager.notify(`Agreement calculated: ${percentage}%`);
+      UIManager.renderAgreementPercentage(percentage);
     } else {
-      UIManager.renderCopyUrl(this.generateModelLink());
+      const sessionUrl = this.generateModelLink();
+      UIManager.renderCopyUrl(sessionUrl);
     }
   }
 
   copyUrl() {
     const url = this.generateModelLink();
     navigator.clipboard.writeText(url).then(() => {
-      alert('تم نسخ الرابط بنجاح!');
+      UIManager.showToast('تم نسخ الرابط بنجاح!');
     }).catch(err => {
-      alert('فشل في نسخ الرابط!');
+      console.error('Failed to copy URL:', err);
     });
   }
 
@@ -457,6 +466,7 @@ class App {
     this.loadNextQuestion();
   }
 
+
   loadNextQuestion() {
     const question = this.questionManager.currentQuestion;
     const questionIndex = this.questionManager.currentQuestionIndex;
@@ -479,7 +489,6 @@ class App {
       }
     }
   }
-
   clearLocalStorage() {
     localStorage.removeItem('answers');
     console.log('Local storage cleared');
