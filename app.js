@@ -65,12 +65,6 @@ class QuestionManager {
     localStorage.setItem("answers", JSON.stringify(storedAnswers));
   }
 
-  // saveToLocalStorage() {
-  //   const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
-  //   localStorage.setItem('answers', JSON.stringify([...storedAnswers, ...this.answers]));
-  //   this.answers = [];
-  // }
-
   calculateAgreement() {
     const storedAnswers = JSON.parse(localStorage.getItem('answers')) || {};
     const answersForSession = storedAnswers[this.sessionId] || [];
@@ -317,43 +311,92 @@ class App {
     }
   }
 
+  // loadSessionQuestions() {
+  //   const urlParams = new URLSearchParams(window.location.search);
+  //   const senderGender = urlParams.get("senderGender");
+  //   const savedAnswers = JSON.parse(urlParams.get("answers") || "[]");
+  //   if (senderGender) {
+  //     this.questionManager.setModelsForGender(senderGender === 'male' ? 'female' : 'male');
+  //     this.questionManager.answers = savedAnswers;
+  //   } else {
+  //     console.error('Sender gender is missing in URL parameters.');
+  //   }
+  //   this.loadNextQuestion();
+
+  // }
+
   loadSessionQuestions() {
     const urlParams = new URLSearchParams(window.location.search);
     const senderGender = urlParams.get("senderGender");
-    const savedAnswers = JSON.parse(urlParams.get("answers") || "[]");
+    const encryptedAnswers = urlParams.get("answers");
+
     if (senderGender) {
       this.questionManager.setModelsForGender(senderGender === 'male' ? 'female' : 'male');
-      this.questionManager.answers = savedAnswers;
+
+      if (encryptedAnswers) {
+        // فك تشفير الإجابات
+        const decryptedAnswers = JSON.parse(atob(encryptedAnswers));
+        this.questionManager.answers = decryptedAnswers;
+      } else {
+        this.questionManager.answers = [];
+      }
     } else {
       console.error('Sender gender is missing in URL parameters.');
     }
-    this.loadNextQuestion();
 
+    this.loadNextQuestion();
   }
 
   generateModelLink() {
     const queryParams = new URLSearchParams();
     queryParams.set("sessionId", this.questionManager.sessionId);
     queryParams.set("senderGender", this.userGender);
-    queryParams.set("answers", JSON.stringify(this.questionManager.answers));
+
+    // Encrypt the answers
+    const encryptedAnswers = btoa(JSON.stringify(this.questionManager.answers));
+    
+    // Generate a short key or ID for localStorage
+    const storageKey = `answers_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Save encrypted answers in localStorage with the generated key
+    localStorage.setItem(storageKey, encryptedAnswers);
+    
+    // Use the short key as the parameter in the URL
+    queryParams.set("answersKey", storageKey);
 
     const baseUrl = window.location.origin + window.location.pathname;
     const link = `${baseUrl}?${queryParams.toString()}`;
 
     return link;
-  }
+}
 
-  completeModel() {
-    this.questionManager.saveToLocalStorage();
-    if (this.questionManager.isComplete()) {
-      const percentage = this.questionManager.calculateAgreement();
-      UIManager.notify(`Agreement calculated: ${percentage}%`);
-      UIManager.renderAgreementPercentage(percentage);
-    } else {
-      const sessionUrl = this.generateModelLink();
-      UIManager.renderCopyUrl(sessionUrl);
-    }
-  }
+  // generateModelLink() {
+  //   const queryParams = new URLSearchParams();
+  //   queryParams.set("sessionId", this.questionManager.sessionId);
+  //   queryParams.set("senderGender", this.userGender);
+
+  //   // تشفير الإجابات
+  //   const encryptedAnswers = btoa(JSON.stringify(this.questionManager.answers));
+  //   queryParams.set("answers", encryptedAnswers);
+
+  //   const baseUrl = window.location.origin + window.location.pathname;
+  //   const link = `${baseUrl}?${queryParams.toString()}`;
+
+  //   return link;
+  // }
+
+
+  // generateModelLink() {
+  //   const queryParams = new URLSearchParams();
+  //   queryParams.set("sessionId", this.questionManager.sessionId);
+  //   queryParams.set("senderGender", this.userGender);
+  //   queryParams.set("answers", JSON.stringify(this.questionManager.answers));
+
+  //   const baseUrl = window.location.origin + window.location.pathname;
+  //   const link = `${baseUrl}?${queryParams.toString()}`;
+
+  //   return link;
+  // }
 
   copyUrl() {
     const url = this.generateModelLink();
@@ -415,8 +458,10 @@ class App {
         console.log("sessionId", this.sessionId);
         const percentage = this.questionManager.calculateAgreement(this.sessionId);
         console.log("PERCENTAGE", percentage);
+        localStorage.removeItem('answers');
         if (percentage !== null) {
           UIManager.renderAgreementPercentage(percentage);
+          localStorage.removeItem('answers');
         } else {
           UIManager.renderCopyUrl(this.questionManager.sessionId);
         }
