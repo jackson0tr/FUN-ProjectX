@@ -2,12 +2,10 @@ class QuestionManager {
   constructor(questions) {
     this.questions = questions;
     this.models = Object.keys(questions);
-    // this.models = [];
     this.currentModelIndex = 0;
     this.currentQuestionIndex = 0;
     this.answers = [];
     this.sessionId = this.generateSessionId();
-    this.pending = true;
   }
 
   setModelsForGender(gender) {
@@ -74,9 +72,10 @@ class QuestionManager {
   // }
 
   calculateAgreement() {
-    const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
-    const modelAAnswers = storedAnswers.filter((a) => a.model === 'modelA');
-    const modelBAnswers = storedAnswers.filter((a) => a.model === 'modelB');
+    const storedAnswers = JSON.parse(localStorage.getItem('answers')) || {};
+    const answersForSession = storedAnswers[this.sessionId] || [];
+    const modelAAnswers = answersForSession?.filter((a) => a.model === 'modelA');
+    const modelBAnswers = answersForSession?.filter((a) => a.model === 'modelB');
 
     let totalPoints = 0;
 
@@ -190,17 +189,6 @@ class QuestionManager {
     }
 
     return Math.round((totalPoints / modelAAnswers.length) * 100);
-  }
-
-  checkPending() {
-    const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
-    const otherSessionAnswers = storedAnswers.filter(
-      (answer) => answer.sessionId !== this.sessionId
-    );
-
-    if (otherSessionAnswers.length > 0) {
-      this.pending = false;
-    }
   }
 
 }
@@ -340,60 +328,8 @@ class App {
       console.error('Sender gender is missing in URL parameters.');
     }
     this.loadNextQuestion();
-    // if (!this.questionManager.pending) {
-    //   this.questionManager.answers = savedAnswers; // Include first user's answers
-    //   const percentage = this.questionManager.calculateAgreement();
-    //   UIManager.renderAgreementPercentage(percentage);
-    // } else {
-    //   UIManager.renderCopyUrl();
-    // }
+
   }
-
-
-  // loadSessionQuestions() {
-  //   const urlParams = new URLSearchParams(window.location.search);
-  //   const senderGender = urlParams.get('senderGender');
-  //   this.questionManager.setModelsForGender(senderGender === 'male' ? 'female' : 'male');
-
-  //   this.questionManager.checkPending();
-
-  //   if (!this.questionManager.pending) {
-  //     const storedAnswers = JSON.parse(localStorage.getItem('answers')) || [];
-  //     const modelAnswers = storedAnswers.filter(answer => answer.model === this.questionManager.currentModel);
-
-  //     // Check if the current model has unanswered questions
-  //     if (modelAnswers.length < this.questionManager.questions[this.questionManager.currentModel].length) {
-  //       this.loadNextQuestion();
-  //     } else {
-  //       // If all questions are answered, calculate the agreement percentage
-  //       const percentage = this.questionManager.calculateAgreement();
-  //       UIManager.renderAgreementPercentage(percentage);
-  //     }
-  //   } else {
-  //     // If the second user hasn't started yet, prompt for sharing the link
-  //     UIManager.renderCopyUrl();
-  //   }
-  // }
-
-
-  // loadSessionQuestions() {
-  //   const urlParams = new URLSearchParams(window.location.search);
-  //   const senderGender = urlParams.get('senderGender');
-  //   this.questionManager.setModelsForGender(senderGender === 'male' ? 'female' : 'male');
-  //   this.questionManager.checkPending();
-  //   if (!this.questionManager.pending) {
-  //     const percentage = this.questionManager.calculateAgreement();
-  //     UIManager.renderAgreementPercentage(percentage);
-  //   } else {
-  //     UIManager.renderCopyUrl();
-  //   }
-  // }
-
-  // generateModelLink() {
-  //   const baseUrl = window.location.origin;
-  //   const sessionId = this.questionManager.sessionId;
-  //   return `${baseUrl}/?sessionId=${sessionId}&nextModel=true&senderGender=${this.userGender}`;
-  // }
 
   generateModelLink() {
     const queryParams = new URLSearchParams();
